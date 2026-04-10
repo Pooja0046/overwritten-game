@@ -1,61 +1,252 @@
+body {
+    margin: 0;
+    background-color: #1C1C1C;
+    font-family: 'Press Start 2P', monospace;
+    color: #FCFBD8;
+    height: 100vh;
+    overflow: hidden;
+}
 
-    body {
-        margin: 0;
-        background-color: #1C1C1C;
-        font-family: 'Courier New', monospace;
-        color: #FCFBD8;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        overflow: hidden;
-    }
+
+#dialogue-text {
+    font-family: 'Pixelify Sans', sans-serif;
+    font-size: 14px;
+    color: #FCFBD8;
+
+    letter-spacing: 1px;   /* FIXES CRAMPING */
+    line-height: 1.6;      /* BETTER READABILITY */
+    white-space: pre-wrap; /* PRESERVES SPACES */
+}
+
 
     .container {
         text-align: center;
     }
 
-    .logo {
-        font-size: 48px;
+    /* LOGO IMAGE */
+    .logo img {
+        width: 400px; /* adjust if needed */
+        image-rendering: pixelated;
         margin-bottom: 40px;
-        position: relative;
-        animation: flicker 2s infinite;
+        animation: flicker 2.5s infinite;
     }
 
     /* Flicker animation */
     @keyframes flicker {
         0% {opacity: 1;}
-        5% {opacity: 0.4;}
+        5% {opacity: 0.5;}
         10% {opacity: 1;}
-        15% {opacity: 0.6;}
+        15% {opacity: 0.7;}
         20% {opacity: 1;}
         100% {opacity: 1;}
     }
 
     .btn {
         display: block;
-        width: 200px;
-        margin: 10px auto;
-        padding: 12px;
+        font-family: 'Press Start 2P', monospace;
+        width: 260px;
+        margin: 15px auto;
+        padding: 14px;
         background-color: #2E2E2E;
-        border: 2px solid #8A8A8A;
+        border: 3px solid #C464AF;
         color: #FCFBD8;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 12px;
         transition: all 0.2s ease;
     }
 
     .btn:hover {
-        background-color: #5C4A3D;
-        border-color: #C464AF;
+        background-color: #9A2C2C;
+        border-color: #9A2C2C;
         transform: scale(1.05);
     }
 
-    /* Subtle glitch overlay */
-    .glitch {
-        position: absolute;
-        top: 0;
-        left: 2px;
-        color: #9A2C2C;
-        opacity: 0.3;
+    /* subtle glitch overlay */
+    .glitch-overlay {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+            0deg,
+            rgba(255,255,255,0.02),
+            rgba(255,255,255,0.02) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+        pointer-events: none;
     }
+
+
+.cursor::after {
+    content: "_";
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50%, 100% {opacity: 1;}
+    25%, 75% {opacity: 0;}
+}
+
+
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background-color: #1C1C1C;
+    color: #FCFBD8;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 9999;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+/* Active state */
+#loading-screen.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#loading-text {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    animation: blink 1s infinite;
+}
+
+/* Blinking text */
+@keyframes blink {
+    0%, 100% {opacity: 1;}
+    50% {opacity: 0;}
+}
+
+
+
+
+    /* ================= START SCREEN LAYOUT ================= */
+
+#start-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.scene {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.scene.active {
+    opacity: 1;
+    pointer-events: all;
+    z-index: 1;
+}
+
+/* ================= DESK SCENE ================= */
+
+.desk-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: url("../assets/images/openingscene.png");
+    background-size: cover;
+    background-position: center;
+}
+
+/* ================= HOTSPOTS ================= */
+
+.hotspot {
+    position: absolute;
+    cursor: pointer;
+}
+
+/* Computer hotspot */
+.computer {
+    width: 259px;
+    height: 200px;
+    top: 44%;
+    left: 40%;
+}
+
+/* Poster hotspot */
+.poster {
+    width: 180px;
+    height: 220px;
+    top: 8%;
+    right: 14%;
+}
+
+/* Optional debug (remove later) */
+.hotspot:hover {
+    outline: 2px solid #9A2C2C;
+}
+
+/* ================= DIALOGUE BOX ================= */
+
+#dialogue-box {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: 60%;
+    padding: 20px;
+
+    background-color: #2E2E2E;
+    border: 3px solid #5C4A3D;
+
+    display: none;
+}
+
+#dialogue-text {
+    font-family: 'Pixelify Sans', sans-serif;
+    font-size: 14px;
+    color: #FCFBD8;
+}
+
+#choice-box {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    background-color: #2E2E2E;
+    border: 3px solid #5C4A3D;
+    padding: 20px;
+    text-align: center;
+
+    display: none;
+}
+
+#choice-box p {
+    font-family: 'Pixelify Sans', sans-serif;
+    margin-bottom: 15px;
+}
+
+#choice-box button {
+    font-family: 'Press Start 2P', monospace;
+    margin: 5px;
+    padding: 10px;
+    background-color: #1C1C1C;
+    border: 2px solid #C464AF;
+    color: #FCFBD8;
+    cursor: pointer;
+}
+
+#choice-box button:hover {
+    background-color: #9A2C2C;
+}
