@@ -59,8 +59,82 @@
 
 <!-- ================= SCENE 3: COMPUTER SCENE ================= -->
 <div id="computer-scene" class="scene">
+
+    <!-- Background -->
     <div class="desk-background" style="background-image: url('assets/images/scene2.png');"></div>
+
+    <!-- COMPUTER UI ON TOP -->
+    <div class="computer-ui">
+
+        <div class="top-bar">
+            <p>SYSTEM_OS v0.3</p>
+        </div>
+
+        <div class="desktop">
+
+            <div class="icon" onclick="openFile('logs')">
+                <img src="assets/images/icon-folder.png">
+                <span>LOGS</span>
+            </div>
+
+            <div class="icon" onclick="openFile('employees')">
+                <img src="assets/images/icon-folder.png">
+                <span>EMPLOYEES</span>
+            </div>
+
+            <div class="icon corrupted" onclick="openFile('footage')">
+                <img src="assets/images/icon-folder.png">
+                <span>FOUND_FOOTAGE</span>
+            </div>
+
+       <div id="popup-box">
+    <p id="popup-text"></p>
+
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="popup-buttons"></div>
 </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+<!-- ================= SCENE 4: FOUND FOOTAGE ================= -->
+<div id="footage-scene" class="scene">
+
+    <!-- Monitor frame -->
+    <div class="monitor-frame"></div>
+
+    <!-- MOVING CAMERA -->
+    <div class="camera">
+        <div class="footage-content">
+            <div id="footage-bg"></div>
+        </div>
+    </div>
+
+    <!-- ✅ HOTSPOT OUTSIDE CAMERA -->
+    <div class="hotspot character" onclick="startFootageDialogue()"></div>
+
+    <!-- Dialogue -->
+    <div id="dialogue-box2">
+        <div class="dialogue-inner">
+            <div id="dialogue-label"></div>
+            <p id="dialogue-text2"></p>
+        </div>
+    </div>
+
+    <div id="glitch-flash" class="glitch-flash"></div>
+
+</div>
+
 
 
 
@@ -75,6 +149,23 @@
 
 <!-- ================= AUDIO ================= -->
 <audio id="type-sound" src="assets/audio/talkingsound.mp3" preload="auto"></audio>
+<audio id="type-sound-camera" src="assets/audio/talkingsound.mp3"></audio>
+<audio id="type-sound-man" src="assets/audio/talkingsound2.mp3"></audio>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- ================= JAVASCRIPT ================= -->
 <script>
@@ -107,14 +198,14 @@ function exitGame() {
     }, 1500);
 }
 
-// INTERACTIONS
+// INTERACTION DIALOGUE 1
 function openComputer() {
     showDialogue("The computer is still on...");
 
         // show choice AFTER dialogue finishes
     setTimeout(() => {
         document.getElementById("choice-box").style.display = "block";
-    }, 1500); // match dialogue timing
+    }, 1400); // match dialogue timing
 }
 
 function enterComputer() {
@@ -187,6 +278,333 @@ function showDialogue(text) {
 
     }, 35);
 }
+
+// ================= COMPUTER UI SECTION =================
+
+function openFile(type) {
+
+    if (type === "logs") {
+        showPopup(
+            "ERROR: No data found",
+            `<button onclick="closePopup()">OK</button>`
+        );
+    }
+
+    if (type === "employees") {
+        showPopup(
+            "ERROR: Employee data missing",
+            `<button onclick="closePopup()">OK</button>`
+        );
+    }
+
+    if (type === "footage") {
+        showPopup(
+            "Corrupted file detected. Attempt recovery?",
+            `
+            <button onclick="recoverFootage()">YES</button>
+            <button onclick="closePopup()">NO</button>
+            `
+        );
+    }
+}
+
+
+// ================= RECOVERY SYSTEM =================
+
+function recoverFootage() {
+    const popupText = document.getElementById("popup-text");
+    const popupButtons = document.getElementById("popup-buttons");
+    const progressContainer = document.getElementById("progress-container");
+    const progressBar = document.getElementById("progress-bar");
+
+    popupButtons.innerHTML = ""; // remove buttons
+    progressContainer.style.display = "block";
+
+    let progress = 0;
+
+    const messages = [
+        "Recovering file...",
+        "Reconstructing data...",
+        "Restoring identity...",
+        "ERROR... retrying...",
+        "Recovery almost complete..."
+    ];
+
+    const interval = setInterval(() => {
+
+        // update progress
+        progress += Math.random() * 12;
+        progressBar.style.width = progress + "%";
+
+        // randomly change text 👁️
+        popupText.innerText = messages[Math.floor(Math.random() * messages.length)];
+
+        if (progress >= 100) {
+            clearInterval(interval);
+
+            progressBar.style.width = "100%";
+            popupText.innerText = "File recovered.";
+
+            popupButtons.innerHTML = `
+                <button onclick="openRecoveredFile()">OPEN FILE</button>
+            `;
+        }
+
+    }, 200);
+}
+
+
+// ================= OPEN RECOVERED FILE =================
+
+function openRecoveredFile() {
+    closePopup();
+
+    const loading = document.getElementById("loading-screen");
+    loading.classList.add("active");
+
+    setTimeout(() => {
+        switchScene("computer-scene", "footage-scene");
+        loading.classList.remove("active");
+    }, 1500);
+}
+
+
+// ================= POPUP SYSTEM =================
+
+function showPopup(text, buttonsHTML) {
+    const popup = document.getElementById("popup-box");
+    const popupText = document.getElementById("popup-text");
+    const popupButtons = document.getElementById("popup-buttons");
+    const progressContainer = document.getElementById("progress-container");
+    const progressBar = document.getElementById("progress-bar");
+
+    popup.style.display = "block";
+    popupText.innerText = text;
+    popupButtons.innerHTML = buttonsHTML;
+
+    // reset progress bar every time popup opens
+    progressContainer.style.display = "none";
+    progressBar.style.width = "0%";
+}
+
+function closePopup() {
+    document.getElementById("popup-box").style.display = "none";
+}
+
+
+
+// ================= FOUND FOOTAGE DIALOGUE =================
+
+// ================= GLOBAL CONTROL =================
+let dialogueIndex = 0;
+let typingInterval2;
+let dialogueTimeout2;
+let dialogueLoopTimeout;
+
+let currentMode = "normal"; // "normal" or "corrupted"
+
+
+// ================= DIALOGUE DATA =================
+
+const footageDialogue = [
+    "[CAMERA] What... what happened here?",
+    "[MAN] ...",
+    "[MAN] You shouldn't be here.",
+    "[CAMERA] We need to leave. Now.",
+    "[MAN] It's too late.",
+    "[MAN] They're not the same anymore.",
+    "[MAN] Something took them.",
+    "[MAN] ...and it's still here.",
+    "[CAMERA] There's still time",
+    "[MAN] YOU DON'T UNDERSTAND!",
+    "[MAN] ITS ALL GONE",
+    "[MAN] WE ARE NOTHING"
+];
+
+const corruptedDialogue = [
+    "[MAN] ...",
+    "[MAN] Why are you still here?",
+    "[CAMERA] What the hell is wrong with your face?",
+    "[MAN] I told you.",
+    "[MAN] It's too late.",
+    "[MAN] It already sees you.",
+    "[CAMERA] Who?!",
+    "[MAN] ...",
+    "[MAN] Look behind you."
+];
+
+
+// ================= START =================
+
+function startFootageDialogue() {
+
+    stopAllDialogue(); // 🔥 VERY IMPORTANT
+
+    currentMode = "normal";
+    dialogueIndex = 0;
+
+    runDialogue();
+}
+
+
+// ================= MASTER DIALOGUE LOOP =================
+
+function runDialogue() {
+
+    let currentArray = (currentMode === "normal") 
+        ? footageDialogue 
+        : corruptedDialogue;
+
+    if (dialogueIndex >= currentArray.length) return;
+
+    const currentLine = currentArray[dialogueIndex];
+
+    showDialogue2(currentLine);
+
+    // 🔥 TRIGGER TRANSITION
+    if (currentMode === "normal" && currentLine.includes("WE ARE NOTHING")) {
+        setTimeout(() => {
+            switchToCorruptedFootage();
+        }, 1200);
+        return; // STOP NORMAL LOOP HERE
+    }
+
+    dialogueIndex++;
+
+    dialogueLoopTimeout = setTimeout(runDialogue, 3200);
+}
+
+
+// ================= STOP EVERYTHING =================
+
+function stopAllDialogue() {
+    clearInterval(typingInterval2);
+    clearTimeout(dialogueTimeout2);
+    clearTimeout(dialogueLoopTimeout);
+}
+
+
+// ================= IMAGE SWITCH =================
+
+function switchToCorruptedFootage() {
+
+    stopAllDialogue(); // STOP NORMAL LOOP
+
+    const bg = document.getElementById("footage-bg");
+
+    if (!bg) {
+        console.error("footage-bg not found ❌");
+        return;
+    }
+
+    bg.style.backgroundImage = "url('assets/images/scene4.png')";
+    bg.classList.add("corrupted");
+
+    currentMode = "corrupted";
+    dialogueIndex = 0;
+
+    setTimeout(() => {
+        runDialogue(); // start corrupted dialogue cleanly
+    }, 500);
+}
+
+
+// ================= DIALOGUE DISPLAY =================
+
+function showDialogue2(text) {
+    const box = document.getElementById("dialogue-box2");
+    const content = document.getElementById("dialogue-text2");
+    const label = document.getElementById("dialogue-label");
+
+    const camSound = document.getElementById("type-sound-camera");
+    const manSound = document.getElementById("type-sound-man");
+
+    clearInterval(typingInterval2);
+    clearTimeout(dialogueTimeout2);
+
+    let currentSound;
+
+    box.classList.remove("dialogue-camera", "dialogue-man");
+
+    if (text.includes("[CAMERA]")) {
+        box.classList.add("dialogue-camera");
+        label.innerText = "CAMERA MAN";
+        currentSound = camSound;
+        text = text.replace("[CAMERA] ", "");
+    } 
+    else if (text.includes("[MAN]")) {
+        box.classList.add("dialogue-man");
+        label.innerText = "STRANGER";
+        currentSound = manSound;
+        text = text.replace("[MAN] ", "");
+    }
+
+    box.style.display = "block";
+    content.innerText = "";
+
+    let i = 0;
+
+    typingInterval2 = setInterval(() => {
+
+        content.innerText += text[i];
+
+        if (currentSound && currentSound.paused && text[i] !== " ") {
+            currentSound.currentTime = 0;
+            currentSound.play().catch(() => {});
+        }
+
+        i++;
+
+        if (i >= text.length) {
+            clearInterval(typingInterval2);
+
+            if (currentSound) {
+                currentSound.pause();
+                currentSound.currentTime = 0;
+            }
+
+            dialogueTimeout2 = setTimeout(() => {
+                box.style.display = "none";
+            }, 2000);
+        }
+
+    }, 25);
+}
+
+// 🔥 FINAL TRIGGER AFTER LAST LINE
+function triggerEnding() {
+    const camera = document.querySelector(".camera");
+    const flash = document.getElementById("glitch-flash");
+
+    // glitch flash
+    flash.classList.add("active");
+
+    // camera fall
+    setTimeout(() => {
+        camera.classList.add("fall");
+    }, 200);
+
+    // show exit popup
+    setTimeout(() => {
+        showPopup(
+            "SIGNAL LOST",
+            `<button onclick="exitFootage()">EXIT</button>`
+        );
+    }, 800);
+}
+
+// EXIT FROM FOOTAGE
+function exitFootage() {
+    const loading = document.getElementById("loading-screen");
+    loading.classList.add("active");
+
+    setTimeout(() => {
+        // next scene later 👀
+        alert("Next scene...");
+        loading.classList.remove("active");
+    }, 1500);
+}
+
 
 </script>
 
