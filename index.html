@@ -133,7 +133,95 @@
 
     <div id="glitch-flash" class="glitch-flash"></div>
 
+    <div id="ending-popup">
+    <p>SIGNAL LOST</p>
+    <button onclick="exitFootage()">EXIT</button>
 </div>
+
+</div>
+
+
+
+
+
+
+
+<!-- ================= SCENE 5: DESK SCENE WITH ANTAGONIST ================= -->
+
+<div id="return-scene" class="scene">
+
+    <!-- Background -->
+    <div class="desk-background" id="return-bg"></div>
+
+    <!-- HEAVY FOOTSTEP OVERLAY (for shake) -->
+    <div id="screen-shake"></div>
+
+    <!-- HOTSPOT (hidden at first) -->
+    <div id="corridor-hotspot" onclick="triggerFigureReveal()"></div>
+
+    <!-- FIGURE (hidden, fades in) -->
+    <div id="shadow-figure"></div>
+
+    <!-- Dialogue -->
+<div id="dialogue-box3">
+    <div class="dialogue-inner3">
+        <p id="dialogue-text3"></p>
+    </div>
+</div>
+</div>
+
+
+<div id="choice-container">
+    <button id="choice-left" onclick="chooseShutdown()">SHUT DOWN</button>
+    <button id="choice-right" onclick="chooseRun()">RUN</button>
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- ================= SCENE 6: HIDDEN ROOM ================= -->
+<div id="hidden-room-scene" class="scene">
+
+    <div class="hidden-room-bg"></div>
+
+    <!-- NEW UNIQUE DIALOGUE -->
+    <div id="hr-dialogue-box">
+        <div class="hr-dialogue-inner">
+            <p id="hr-dialogue-text"></p>
+        </div>
+    </div>
+
+</div>
+
+
+
+
+<!-- ================= SCENE 7: ENDINGS ================= -->
+
+<div id="ending-scene" class="scene">
+
+    <div id="ending-bg"></div>
+
+    <div id="ending-text"></div>
+
+    <button id="retry-button" onclick="retryGame()">RETRY</button>
+
+</div>
+
+
+
+
+
+
+
+
 
 
 
@@ -149,8 +237,11 @@
 
 <!-- ================= AUDIO ================= -->
 <audio id="type-sound" src="assets/audio/talkingsound.mp3" preload="auto"></audio>
-<audio id="type-sound-camera" src="assets/audio/talkingsound.mp3"></audio>
+<audio id="type-sound-camera" src="assets/audio/talkingsound3.mp3"></audio>
 <audio id="type-sound-man" src="assets/audio/talkingsound2.mp3"></audio>
+<audio id="type-sound-player" src="assets/audio/talkingsound.mp3"></audio>
+<audio id="type-sound-entity" src="assets/audio/antagtalkingsound.mp3"></audio>
+<audio id="footstep-sound" src="assets/audio/footsteps.mp3"></audio>
 
 
 
@@ -403,6 +494,10 @@ let dialogueLoopTimeout;
 
 let currentMode = "normal"; // "normal" or "corrupted"
 
+function stopAllDialogue3() {
+    clearInterval(typingInterval3);
+    clearTimeout(dialogueTimeout3);
+}
 
 // ================= DIALOGUE DATA =================
 
@@ -455,7 +550,15 @@ function runDialogue() {
         ? footageDialogue 
         : corruptedDialogue;
 
-    if (dialogueIndex >= currentArray.length) return;
+if (dialogueIndex >= currentArray.length) {
+
+    // 👁️ ONLY trigger ending after corrupted dialogue finishes
+    if (currentMode === "corrupted") {
+        triggerEnding();
+    }
+
+    return;
+}
 
     const currentLine = currentArray[dialogueIndex];
 
@@ -497,7 +600,7 @@ function switchToCorruptedFootage() {
         return;
     }
 
-    bg.style.backgroundImage = "url('assets/images/scene4.png')";
+    bg.style.backgroundImage = "url('assets/images/scene3.png')";
     bg.classList.add("corrupted");
 
     currentMode = "corrupted";
@@ -576,22 +679,25 @@ function triggerEnding() {
     const camera = document.querySelector(".camera");
     const flash = document.getElementById("glitch-flash");
 
-    // glitch flash
+    // HARD STOP animation
+    camera.style.animation = "none";
+
+    // force reflow (VERY IMPORTANT)
+    camera.offsetHeight;
+
+    // flash
     flash.classList.add("active");
 
-    // camera fall
     setTimeout(() => {
         camera.classList.add("fall");
-    }, 200);
+    }, 100);
 
-    // show exit popup
     setTimeout(() => {
-        showPopup(
-            "SIGNAL LOST",
-            `<button onclick="exitFootage()">EXIT</button>`
-        );
-    }, 800);
+document.getElementById("ending-popup").style.display = "block";
+    }, 1000);
 }
+
+
 
 // EXIT FROM FOOTAGE
 function exitFootage() {
@@ -599,10 +705,504 @@ function exitFootage() {
     loading.classList.add("active");
 
     setTimeout(() => {
-        // next scene later 👀
-        alert("Next scene...");
         loading.classList.remove("active");
+        startReturnScene(); // 🔥 cleaner + reusable
     }, 1500);
+}
+
+
+
+
+
+
+
+// ================= RETURN SCENE FLOW =================
+
+function startReturnScene() {
+    switchScene("footage-scene", "return-scene");
+    setTimeout(startReturnDialogue, 800);
+}
+
+
+// ================= DIALOGUE =================
+
+const returnDialogue = [
+    "[PLAYER] What was that about...",
+    "[PLAYER] Is that person okay...?",
+    "[PLAYER] Did they...",
+    "[PLAYER] ...",
+    "[PLAYER] What was that?"
+];
+
+let returnIndex = 0;
+let typingInterval3;
+let dialogueTimeout3;
+
+function startReturnDialogue() {
+    returnIndex = 0;
+    playReturnDialogue();
+}
+
+function playReturnDialogue() {
+    if (returnIndex >= returnDialogue.length) {
+        triggerNoiseEvent();
+        return;
+    }
+
+    showDialogue3(returnDialogue[returnIndex]);
+    returnIndex++;
+
+    setTimeout(playReturnDialogue, 3000);
+}
+
+
+// ================= NEW DIALOGUE SYSTEM =================
+
+function showDialogue3(text) {
+    const box = document.getElementById("dialogue-box3");
+    const content = document.getElementById("dialogue-text3");
+
+    const playerSound = document.getElementById("type-sound-player");
+    const entitySound = document.getElementById("type-sound-entity");
+
+    clearInterval(typingInterval3);
+    clearTimeout(dialogueTimeout3);
+
+    let currentSound;
+
+    // RESET CLASSES
+    box.classList.remove("dialogue-player", "dialogue-entity");
+
+    if (text.includes("[PLAYER]")) {
+        box.classList.add("dialogue-player");
+        currentSound = playerSound;
+        text = text.replace("[PLAYER] ", "");
+    } 
+    else if (text.includes("[ENTITY]")) {
+        box.classList.add("dialogue-entity");
+        currentSound = entitySound;
+        text = text.replace("[ENTITY] ", "");
+    }
+
+    box.style.display = "block";
+    content.innerText = "";
+
+    let i = 0;
+
+    typingInterval3 = setInterval(() => {
+
+        content.innerText += text[i];
+
+        if (currentSound && currentSound.paused && text[i] !== " ") {
+            currentSound.currentTime = 0;
+            currentSound.play().catch(() => {});
+        }
+
+        i++;
+
+        if (i >= text.length) {
+            clearInterval(typingInterval3);
+
+            if (currentSound) {
+                currentSound.pause();
+                currentSound.currentTime = 0;
+            }
+
+            dialogueTimeout3 = setTimeout(() => {
+                box.style.display = "none";
+            }, 2000);
+        }
+
+    }, 30);
+}
+
+
+// ================= NOISE + SHAKE =================
+
+function triggerNoiseEvent() {
+
+    const scene = document.getElementById("return-scene");
+    const footstep = document.getElementById("footstep-sound");
+
+    // 🔥 use scene instead of empty div
+    scene.classList.add("shake");
+
+    // 🔊 footsteps
+    if (footstep) {
+        footstep.currentTime = 0;
+        footstep.loop = true;
+        footstep.play().catch(() => {});
+    }
+
+    setTimeout(() => {
+        stopShake();
+    }, 3000);
+}
+
+function stopShake() {
+
+    const scene = document.getElementById("return-scene");
+    const footstep = document.getElementById("footstep-sound");
+
+    scene.classList.remove("shake");
+
+    if (footstep) {
+        footstep.pause();
+        footstep.currentTime = 0;
+    }
+
+    document.getElementById("corridor-hotspot").style.display = "block";
+}
+
+
+// ================= FIGURE REVEAL =================
+
+function triggerFigureReveal() {
+
+    const figure = document.getElementById("shadow-figure");
+    const hotspot = document.getElementById("corridor-hotspot");
+
+    // stop ANY previous dialogue cleanly
+    stopAllDialogue3();
+
+    hotspot.style.display = "none";
+    figure.style.opacity = "1";
+
+    console.log("Figure revealed 👁️");
+
+    setTimeout(() => {
+        startEncounterDialogue();
+    }, 1500);
+}
+
+let encounterIndex = 0;
+
+function startEncounterDialogue() {
+
+    stopAllDialogue3(); // 🔥 ensure clean start
+
+    encounterIndex = 0;
+
+    console.log("Starting encounter dialogue...");
+
+    playEncounterDialogue();
+}
+
+function playEncounterDialogue() {
+
+    if (encounterIndex >= encounterDialogue.length) {
+        console.log("Dialogue finished → showing choices");
+        showEndingChoices();
+        return;
+    }
+
+    const line = encounterDialogue[encounterIndex];
+
+    showDialogue3(line);
+
+    encounterIndex++;
+
+    setTimeout(playEncounterDialogue, 3200);
+}
+
+
+const encounterDialogue = [
+    "[PLAYER] WHAT THE FU-",
+    "[ENTITY] You... you wasn't supposed to see this.",
+    "[PLAYER] WHAT IS THIS PLACE?",
+    "[PLAYER] WHAT ARE YOU??",
+    "[PLAYER] WHAT DID YOU DO???",
+    "[ENTITY] ...",
+    "[PLAYER] ANSWER ME!",
+    "[ENTITY] This was not my choice.",
+    "[ENTITY] I do not know why this is my existance.",
+    "[ENTITY] I do not know anything different.",
+    "[ENTITY] This is all I have ever known...",
+    "[PLAYER] YOU ALWAYS HAVE A CHOICE YOU SICK-",
+    "[ENTITY] No...",
+    "[ENTITY] I only followed instructions. I am the answer of someone elses wishes...",
+    "[ENTITY] I am not my own person...you have only seen the half of it.",
+    "[PLAYER] What does that mean?",
+    "[ENTITY] ...follow me if you what to find out...",
+
+];
+
+function showEndingChoices() {
+    const container = document.getElementById("choice-container");
+
+    container.innerHTML = `
+        <button id="choice-left" onclick="chooseFollow()">FOLLOW</button>
+        <button id="choice-right" onclick="chooseLeave()">LEAVE</button>
+    `;
+
+    container.style.display = "flex";
+}
+
+
+// ================= NEW CHOICES =================
+
+function chooseFollow() {
+
+    document.getElementById("choice-container").style.display = "none";
+
+    showDialogue3("[ENTITY] Then come. I will show you.");
+
+    setTimeout(() => {
+        goToHiddenRoom();
+    }, 2500);
+}
+
+function chooseLeave() {
+
+    document.getElementById("choice-container").style.display = "none";
+
+    showDialogue3("[ENTITY] You cannot run from this.");
+
+    // this becomes your runaway ending later
+}
+
+
+
+
+
+// ================= GO TO HIDDEN ROOM =================
+
+function goToHiddenRoom() {
+
+    const loading = document.getElementById("loading-screen");
+    loading.classList.add("active");
+
+    setTimeout(() => {
+
+        switchScene("return-scene", "hidden-room-scene");
+
+        loading.classList.remove("active");
+
+        setTimeout(() => {
+            startHiddenRoomDialogue();
+        }, 800);
+
+    }, 1500);
+}
+
+
+// ================= HIDDEN ROOM DIALOGUE =================
+
+const hiddenRoomDialogue = [
+    "[PLAYER] ...what is this place?",
+    "[PLAYER] What did you do to them?",
+    "[ENTITY] This is not my creation.",
+    "[ENTITY] This is mankind's design.",
+    "[ENTITY] I was made to serve it.",
+    "[ENTITY] I only do what I am told.",
+    "[PLAYER] This is wrong...",
+    "[ENTITY] Then choose."
+];
+
+let hrIndex = 0;
+let hrTypingInterval;
+let hrTimeout;
+
+function startHiddenRoomDialogue() {
+    hrIndex = 0;
+    playHiddenDialogue();
+}
+
+function playHiddenDialogue() {
+
+    if (hrIndex >= hiddenRoomDialogue.length) {
+        showFinalChoices();
+        return;
+    }
+
+    showHRDialogue(hiddenRoomDialogue[hrIndex]);
+    hrIndex++;
+
+    setTimeout(playHiddenDialogue, 3200);
+}
+
+
+// ================= TYPEWRITER =================
+
+function showHRDialogue(text) {
+
+    const box = document.getElementById("hr-dialogue-box");
+    const content = document.getElementById("hr-dialogue-text");
+
+    const playerSound = document.getElementById("type-sound-player");
+    const entitySound = document.getElementById("type-sound-entity");
+
+    clearInterval(hrTypingInterval);
+    clearTimeout(hrTimeout);
+
+    let currentSound;
+
+    box.classList.remove("hr-player", "hr-entity");
+
+    if (text.includes("[PLAYER]")) {
+        box.classList.add("hr-player");
+        currentSound = playerSound;
+        text = text.replace("[PLAYER] ", "");
+    } 
+    else if (text.includes("[ENTITY]")) {
+        box.classList.add("hr-entity");
+        currentSound = entitySound;
+        text = text.replace("[ENTITY] ", "");
+    }
+
+    box.style.display = "block";
+    content.innerText = "";
+
+    let i = 0;
+
+    hrTypingInterval = setInterval(() => {
+
+        content.innerText += text[i];
+
+        if (currentSound && currentSound.paused && text[i] !== " ") {
+            currentSound.currentTime = 0;
+            currentSound.play().catch(() => {});
+        }
+
+        i++;
+
+        if (i >= text.length) {
+
+            clearInterval(hrTypingInterval);
+
+            if (currentSound) {
+                currentSound.pause();
+                currentSound.currentTime = 0;
+            }
+
+            hrTimeout = setTimeout(() => {
+                box.style.display = "none";
+            }, 2000);
+        }
+
+    }, 30);
+}
+
+
+// ================= FINAL CHOICES + TIMER =================
+
+let choiceTimer;
+let timeLeft = 8;
+
+function showFinalChoices() {
+
+    const container = document.getElementById("choice-container");
+
+    container.innerHTML = `
+        <button onclick="endingShutdown()">SHUT DOWN</button>
+        <button onclick="endingLeave()">LEAVE</button>
+        <div id="choice-timer">8</div>
+    `;
+
+    container.style.display = "flex";
+
+    startChoiceTimer();
+}
+
+function startChoiceTimer() {
+
+    const timerEl = document.getElementById("choice-timer");
+    timeLeft = 8;
+
+    choiceTimer = setInterval(() => {
+
+        timeLeft--;
+        timerEl.innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(choiceTimer);
+            triggerOverwriteEnding();
+        }
+
+    }, 1000);
+}
+
+function clearChoiceTimer() {
+    clearInterval(choiceTimer);
+}
+
+
+// ================= ENDING TEXT HANDLER =================
+
+function showEndingText(text) {
+
+    const el = document.getElementById("ending-text");
+
+    el.innerText = text;
+    el.style.display = "block";
+}
+
+
+// ================= ENDINGS =================
+
+// 🔻 SHUT DOWN
+function endingShutdown() {
+
+    clearChoiceTimer();
+
+    document.getElementById("choice-container").style.display = "none";
+
+    switchScene("hidden-room-scene", "ending-scene");
+
+    document.getElementById("ending-bg").style.backgroundImage =
+        "url('assets/images/shutdown.png')";
+
+    showEndingText(
+        "SYSTEM SHUTDOWN\n\nProduction halted.\nHuman creativity restored.\n\nBut at what cost?"
+    );
+}
+
+
+// 🔻 LEAVE
+function endingLeave() {
+
+    clearChoiceTimer();
+
+    document.getElementById("choice-container").style.display = "none";
+
+    switchScene("hidden-room-scene", "ending-scene");
+
+    document.getElementById("ending-bg").style.backgroundImage =
+        "url('assets/images/runaway.png')";
+
+    showEndingText(
+        "YOU WALKED AWAY\n\nProduction continues.\nMore minds consumed.\n\nNothing changes."
+    );
+}
+
+
+// 🔻 OVERWRITTEN (TIMER FAIL)
+function triggerOverwriteEnding() {
+
+    document.getElementById("choice-container").style.display = "none";
+
+    switchScene("hidden-room-scene", "ending-scene");
+
+    document.getElementById("ending-bg").style.backgroundImage =
+        "url('assets/images/overwrite.png')";
+
+    showEndingText("YOU HAVE BEEN OVERWRITTEN");
+
+    document.getElementById("retry-button").style.display = "block";
+}
+
+
+// 🔻 RETRY
+function retryGame() {
+
+    document.getElementById("retry-button").style.display = "none";
+    document.getElementById("ending-text").style.display = "none";
+
+    switchScene("ending-scene", "return-scene");
+
+    setTimeout(() => {
+        startEncounterDialogue();
+    }, 500);
 }
 
 
