@@ -242,6 +242,7 @@
 <audio id="type-sound-player" src="assets/audio/talkingsound.mp3"></audio>
 <audio id="type-sound-entity" src="assets/audio/antagtalkingsound.mp3"></audio>
 <audio id="footstep-sound" src="assets/audio/footsteps.mp3"></audio>
+<audio id="type-sound-ending" src="assets/audio/genericsound.mp3"></audio>
 
 
 
@@ -1127,14 +1128,69 @@ function clearChoiceTimer() {
 }
 
 
-// ================= ENDING TEXT HANDLER =================
+// ================= ENDING TYPEWRITER =================
+
+let endingTypingInterval;
 
 function showEndingText(text) {
 
     const el = document.getElementById("ending-text");
+    const sound = document.getElementById("type-sound-ending");
 
-    el.innerText = text;
+    clearInterval(endingTypingInterval);
+
+    el.innerText = "";
     el.style.display = "block";
+
+    let i = 0;
+
+    endingTypingInterval = setInterval(() => {
+
+        el.innerText += text[i];
+
+        // 🔊 play typing sound
+        if (sound && sound.paused && text[i] !== " ") {
+            sound.currentTime = 0;
+            sound.play().catch(() => {});
+        }
+
+        i++;
+
+        if (i >= text.length) {
+            clearInterval(endingTypingInterval);
+
+            if (sound) {
+                sound.pause();
+                sound.currentTime = 0;
+            }
+
+            // 👇 show buttons AFTER text finishes
+            showEndingButtons();
+        }
+
+    }, 35);
+}
+
+
+// ================= ENDING BUTTONS =================
+
+function showEndingButtons() {
+
+    let container = document.getElementById("ending-buttons");
+
+    // create container if it doesn't exist
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "ending-buttons";
+        document.getElementById("ending-scene").appendChild(container);
+    }
+
+    container.innerHTML = `
+        <button id="retry-button" onclick="retryGame()">RETRY</button>
+        <button id="exit-button" onclick="exitGame()">EXIT</button>
+    `;
+
+    container.style.display = "flex";
 }
 
 
@@ -1144,7 +1200,6 @@ function showEndingText(text) {
 function endingShutdown() {
 
     clearChoiceTimer();
-
     document.getElementById("choice-container").style.display = "none";
 
     switchScene("hidden-room-scene", "ending-scene");
@@ -1162,7 +1217,6 @@ function endingShutdown() {
 function endingLeave() {
 
     clearChoiceTimer();
-
     document.getElementById("choice-container").style.display = "none";
 
     switchScene("hidden-room-scene", "ending-scene");
@@ -1176,7 +1230,7 @@ function endingLeave() {
 }
 
 
-// 🔻 OVERWRITTEN (TIMER FAIL)
+// 🔻 OVERWRITTEN
 function triggerOverwriteEnding() {
 
     document.getElementById("choice-container").style.display = "none";
@@ -1187,22 +1241,38 @@ function triggerOverwriteEnding() {
         "url('assets/images/overwrite.png')";
 
     showEndingText("YOU HAVE BEEN OVERWRITTEN");
-
-    document.getElementById("retry-button").style.display = "block";
 }
 
 
-// 🔻 RETRY
+// ================= RETRY =================
+
 function retryGame() {
 
     document.getElementById("retry-button").style.display = "none";
     document.getElementById("ending-text").style.display = "none";
+
+    const exitBtn = document.getElementById("exit-button");
+    if (exitBtn) exitBtn.style.display = "none";
 
     switchScene("ending-scene", "return-scene");
 
     setTimeout(() => {
         startEncounterDialogue();
     }, 500);
+}
+
+
+// ================= EXIT GAME =================
+
+function exitGame() {
+
+    document.getElementById("retry-button").style.display = "none";
+    document.getElementById("ending-text").style.display = "none";
+
+    const exitBtn = document.getElementById("exit-button");
+    if (exitBtn) exitBtn.style.display = "none";
+
+    switchScene("ending-scene", "start-screen"); // 👈 your main menu ID
 }
 
 

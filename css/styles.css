@@ -940,26 +940,51 @@ body {
     font-size: 14px;
     color: #FCFBD8;
 
-    white-space: pre-line;
+    letter-spacing: 1px;
+    line-height: 1.6;
+    white-space: pre-wrap;
 
     z-index: 5;
 }
 
-#retry-button {
+
+/* ================= ENDING BUTTONS (MATCH CHOICES STYLE) ================= */
+
+#ending-buttons {
     position: absolute;
     bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 100%;
 
     display: none;
-
-    padding: 15px;
-    font-family: 'Press Start 2P', monospace;
-
-    background-color: #1C1C1C;
-    border: 3px solid #9A2C2C;
-    color: #FCFBD8;
-    cursor: pointer;
+    justify-content: center;
+    gap: 40px;
 
     z-index: 9999;
 }
+
+#ending-buttons button {
+    font-family: 'Press Start 2P', monospace;
+    padding: 15px;
+    width: 200px;
+
+    background-color: #1C1C1C;
+    border: 3px solid #5C4A3D;
+    color: #FCFBD8;
+
+    cursor: pointer;
+}
+
+/* RETRY (calm) */
+#retry-button:hover {
+    background-color: #3B4B3B;
+}
+
+/* EXIT (danger) */
+#exit-button:hover {
+    background-color: #9A2C2C;
+}
+
+
+
+
+
