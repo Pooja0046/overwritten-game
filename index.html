@@ -44,6 +44,7 @@
     <!-- Optional text box -->
     <div id="dialogue-box">
         <p id="dialogue-text"></p>
+<div id="continue-indicator">▶</div>
     </div>
 
     <div id="choice-box">
@@ -128,6 +129,7 @@
         <div class="dialogue-inner">
             <div id="dialogue-label"></div>
             <p id="dialogue-text2"></p>
+<div id="continue-indicator2">▶</div>
         </div>
     </div>
 
@@ -166,16 +168,13 @@
 <div id="dialogue-box3">
     <div class="dialogue-inner3">
         <p id="dialogue-text3"></p>
+<div id="continue-indicator3">▶</div>
     </div>
 </div>
 </div>
 
 
-<div id="choice-container">
-    <button id="choice-left" onclick="chooseShutdown()">SHUT DOWN</button>
-    <button id="choice-right" onclick="chooseRun()">RUN</button>
-</div>
-
+<div id="choice-container" style="display: none;"></div>
 </div>
 
 
@@ -195,6 +194,7 @@
     <div id="hr-dialogue-box">
         <div class="hr-dialogue-inner">
             <p id="hr-dialogue-text"></p>
+<div id="continue-indicator4">▶</div>
         </div>
     </div>
 
@@ -261,6 +261,7 @@
 
 <!-- ================= JAVASCRIPT ================= -->
 <script>
+    let choicesLocked = false;
 
 function switchScene(current, next) {
     document.getElementById(current).classList.remove("active");
@@ -294,10 +295,10 @@ function exitGame() {
 function openComputer() {
     showDialogue("The computer is still on...");
 
-        // show choice AFTER dialogue finishes
-    setTimeout(() => {
+    // show choice AFTER dialogue finishes (now triggered after input)
+    dialogueCallback = () => {
         document.getElementById("choice-box").style.display = "block";
-    }, 1400); // match dialogue timing
+    };
 }
 
 function enterComputer() {
@@ -321,8 +322,15 @@ function inspectPoster() {
     showDialogue("A missing person poster...they've been missing for 9 months...");
 }
 
+
+// ================= DIALOGUE SYSTEM =================
+
 let typingInterval;
-let dialogueTimeout;
+let isTyping = false;
+let canAdvance = false;
+let currentText = "";
+let currentIndex = 0;
+let dialogueCallback = null;
 
 function showDialogue(text) {
     const box = document.getElementById("dialogue-box");
@@ -330,9 +338,7 @@ function showDialogue(text) {
     const sound = document.getElementById("type-sound");
 
     clearInterval(typingInterval);
-    clearTimeout(dialogueTimeout);
 
-    // HARD STOP any existing sound
     if (sound) {
         sound.pause();
         sound.currentTime = 0;
@@ -341,35 +347,74 @@ function showDialogue(text) {
     box.style.display = "block";
     content.innerText = "";
 
-    let i = 0;
+    currentText = text;
+    currentIndex = 0;
+    isTyping = true;
+    canAdvance = false;
 
     typingInterval = setInterval(() => {
 
-        content.innerText += text[i];
+        content.innerText += text[currentIndex];
 
-        // 🔥 ONLY play sound if it's NOT already playing
-        if (sound && sound.paused && text[i] !== " ") {
+        if (sound && sound.paused && text[currentIndex] !== " ") {
             sound.play().catch(() => {});
         }
 
-        i++;
+        currentIndex++;
 
-        if (i >= text.length) {
+        if (currentIndex >= text.length) {
             clearInterval(typingInterval);
+            isTyping = false;
+            canAdvance = true;
 
-            // STOP sound immediately when done
             if (sound) {
                 sound.pause();
                 sound.currentTime = 0;
             }
 
-            dialogueTimeout = setTimeout(() => {
-                box.style.display = "none";
-            }, 2500);
+            document.getElementById("continue-indicator").style.display = "block";
         }
 
     }, 35);
 }
+
+// ================= KEY INPUT =================
+
+document.addEventListener("keydown", function(e) {
+
+    if (e.key !== " " && e.key !== "ArrowRight") return;
+
+    const content = document.getElementById("dialogue-text");
+
+    // IF STILL TYPING → INSTANT FINISH
+    if (isTyping) {
+        clearInterval(typingInterval);
+        content.innerText = currentText;
+
+        isTyping = false;
+        canAdvance = true;
+
+        document.getElementById("continue-indicator").style.display = "block";
+        return;
+    }
+
+    // 👉 NORMAL ADVANCE
+    if (!canAdvance) return;
+
+    const box = document.getElementById("dialogue-box");
+
+    box.style.display = "none";
+    document.getElementById("continue-indicator").style.display = "none";
+
+    canAdvance = false;
+
+    if (dialogueCallback) {
+        dialogueCallback();
+        dialogueCallback = null;
+    }
+});
+
+
 
 // ================= COMPUTER UI SECTION =================
 
@@ -485,20 +530,19 @@ function closePopup() {
 
 
 
-// ================= FOUND FOOTAGE DIALOGUE =================
+/// ================= FOUND FOOTAGE DIALOGUE =================
 
 // ================= GLOBAL CONTROL =================
 let dialogueIndex = 0;
 let typingInterval2;
-let dialogueTimeout2;
-let dialogueLoopTimeout;
 
 let currentMode = "normal"; // "normal" or "corrupted"
 
-function stopAllDialogue3() {
-    clearInterval(typingInterval3);
-    clearTimeout(dialogueTimeout3);
-}
+// NEW CONTROL FLAGS
+let isTyping2 = false;
+let canAdvance2 = false;
+let currentText2 = "";
+let currentIndex2 = 0;
 
 // ================= DIALOGUE DATA =================
 
@@ -533,8 +577,7 @@ const corruptedDialogue = [
 // ================= START =================
 
 function startFootageDialogue() {
-
-    stopAllDialogue(); // 🔥 VERY IMPORTANT
+    stopAllDialogue();
 
     currentMode = "normal";
     dialogueIndex = 0;
@@ -543,7 +586,7 @@ function startFootageDialogue() {
 }
 
 
-// ================= MASTER DIALOGUE LOOP =================
+// ================= MASTER DIALOGUE =================
 
 function runDialogue() {
 
@@ -551,40 +594,25 @@ function runDialogue() {
         ? footageDialogue 
         : corruptedDialogue;
 
-if (dialogueIndex >= currentArray.length) {
+    if (dialogueIndex >= currentArray.length) {
 
-    // 👁️ ONLY trigger ending after corrupted dialogue finishes
-    if (currentMode === "corrupted") {
-        triggerEnding();
+        if (currentMode === "corrupted") {
+            triggerEnding();
+        }
+
+        return;
     }
-
-    return;
-}
 
     const currentLine = currentArray[dialogueIndex];
 
     showDialogue2(currentLine);
-
-    // 🔥 TRIGGER TRANSITION
-    if (currentMode === "normal" && currentLine.includes("WE ARE NOTHING")) {
-        setTimeout(() => {
-            switchToCorruptedFootage();
-        }, 1200);
-        return; // STOP NORMAL LOOP HERE
-    }
-
-    dialogueIndex++;
-
-    dialogueLoopTimeout = setTimeout(runDialogue, 3200);
 }
 
 
-// ================= STOP EVERYTHING =================
+// ================= STOP =================
 
 function stopAllDialogue() {
     clearInterval(typingInterval2);
-    clearTimeout(dialogueTimeout2);
-    clearTimeout(dialogueLoopTimeout);
 }
 
 
@@ -592,7 +620,7 @@ function stopAllDialogue() {
 
 function switchToCorruptedFootage() {
 
-    stopAllDialogue(); // STOP NORMAL LOOP
+    stopAllDialogue();
 
     const bg = document.getElementById("footage-bg");
 
@@ -601,15 +629,15 @@ function switchToCorruptedFootage() {
         return;
     }
 
-    bg.style.backgroundImage = "url('assets/images/scene3.png')";
+    bg.style.backgroundImage = "url('assets/images/guy.png')";
     bg.classList.add("corrupted");
 
     currentMode = "corrupted";
     dialogueIndex = 0;
 
     setTimeout(() => {
-        runDialogue(); // start corrupted dialogue cleanly
-    }, 500);
+        runDialogue();
+    }, 200);
 }
 
 
@@ -624,7 +652,6 @@ function showDialogue2(text) {
     const manSound = document.getElementById("type-sound-man");
 
     clearInterval(typingInterval2);
-    clearTimeout(dialogueTimeout2);
 
     let currentSound;
 
@@ -646,47 +673,92 @@ function showDialogue2(text) {
     box.style.display = "block";
     content.innerText = "";
 
-    let i = 0;
+    currentText2 = text;
+    currentIndex2 = 0;
+    isTyping2 = true;
+    canAdvance2 = false;
 
     typingInterval2 = setInterval(() => {
 
-        content.innerText += text[i];
+        content.innerText += text[currentIndex2];
 
-        if (currentSound && currentSound.paused && text[i] !== " ") {
+        if (currentSound && currentSound.paused && text[currentIndex2] !== " ") {
             currentSound.currentTime = 0;
             currentSound.play().catch(() => {});
         }
 
-        i++;
+        currentIndex2++;
 
-        if (i >= text.length) {
+        if (currentIndex2 >= text.length) {
+
             clearInterval(typingInterval2);
+
+            isTyping2 = false;
+            canAdvance2 = true;
 
             if (currentSound) {
                 currentSound.pause();
                 currentSound.currentTime = 0;
             }
 
-            dialogueTimeout2 = setTimeout(() => {
-                box.style.display = "none";
-            }, 2000);
+            document.getElementById("continue-indicator2").style.display = "block";
         }
 
     }, 25);
 }
 
-// 🔥 FINAL TRIGGER AFTER LAST LINE
+
+// ================= KEY INPUT =================
+
+document.addEventListener("keydown", function(e) {
+
+    if (e.key !== " " && e.key !== "ArrowRight") return;
+
+    const content = document.getElementById("dialogue-text2");
+
+    // 🔥 FINISH TYPING INSTANTLY
+    if (isTyping2) {
+        clearInterval(typingInterval2);
+        content.innerText = currentText2;
+
+        isTyping2 = false;
+        canAdvance2 = true;
+
+        document.getElementById("continue-indicator2").style.display = "block";
+        return;
+    }
+
+    // 👉 NEXT LINE
+    if (!canAdvance2) return;
+
+    document.getElementById("dialogue-box2").style.display = "none";
+    document.getElementById("continue-indicator2").style.display = "none";
+
+    canAdvance2 = false;
+
+    // 🔥 CHECK FOR CORRUPTION TRIGGER
+    if (
+        currentMode === "normal" &&
+        currentText2.includes("WE ARE NOTHING")
+    ) {
+        switchToCorruptedFootage();
+        return;
+    }
+
+    dialogueIndex++;
+    runDialogue();
+});
+
+
+// ================= ENDING =================
+
 function triggerEnding() {
     const camera = document.querySelector(".camera");
     const flash = document.getElementById("glitch-flash");
 
-    // HARD STOP animation
     camera.style.animation = "none";
-
-    // force reflow (VERY IMPORTANT)
     camera.offsetHeight;
 
-    // flash
     flash.classList.add("active");
 
     setTimeout(() => {
@@ -694,10 +766,9 @@ function triggerEnding() {
     }, 100);
 
     setTimeout(() => {
-document.getElementById("ending-popup").style.display = "block";
+        document.getElementById("ending-popup").style.display = "block";
     }, 1000);
 }
-
 
 
 // EXIT FROM FOOTAGE
@@ -737,27 +808,52 @@ const returnDialogue = [
 
 let returnIndex = 0;
 let typingInterval3;
-let dialogueTimeout3;
+
+// NEW CONTROL
+let isTyping3 = false;
+let canAdvance3 = false;
+let currentText3 = "";
+let currentIndex3 = 0;
+
+// MODE CONTROL
+let returnMode = "intro"; // "intro" OR "encounter"
+
+// ================= START =================
 
 function startReturnDialogue() {
+    returnMode = "intro";
     returnIndex = 0;
-    playReturnDialogue();
+    runReturnDialogue();
 }
 
-function playReturnDialogue() {
-    if (returnIndex >= returnDialogue.length) {
-        triggerNoiseEvent();
-        return;
+
+// ================= MASTER FLOW =================
+
+function runReturnDialogue() {
+
+    if (returnMode === "intro") {
+
+        if (returnIndex >= returnDialogue.length) {
+            triggerNoiseEvent();
+            return;
+        }
+
+        showDialogue3(returnDialogue[returnIndex]);
     }
 
-    showDialogue3(returnDialogue[returnIndex]);
-    returnIndex++;
+    if (returnMode === "encounter") {
 
-    setTimeout(playReturnDialogue, 3000);
+        if (returnIndex >= encounterDialogue.length) {
+            showEndingChoices();
+            return;
+        }
+
+        showDialogue3(encounterDialogue[returnIndex]);
+    }
 }
 
 
-// ================= NEW DIALOGUE SYSTEM =================
+// ================= DIALOGUE DISPLAY =================
 
 function showDialogue3(text) {
     const box = document.getElementById("dialogue-box3");
@@ -767,11 +863,9 @@ function showDialogue3(text) {
     const entitySound = document.getElementById("type-sound-entity");
 
     clearInterval(typingInterval3);
-    clearTimeout(dialogueTimeout3);
 
     let currentSound;
 
-    // RESET CLASSES
     box.classList.remove("dialogue-player", "dialogue-entity");
 
     if (text.includes("[PLAYER]")) {
@@ -788,34 +882,71 @@ function showDialogue3(text) {
     box.style.display = "block";
     content.innerText = "";
 
-    let i = 0;
+    currentText3 = text;
+    currentIndex3 = 0;
+    isTyping3 = true;
+    canAdvance3 = false;
 
     typingInterval3 = setInterval(() => {
 
-        content.innerText += text[i];
+        content.innerText += text[currentIndex3];
 
-        if (currentSound && currentSound.paused && text[i] !== " ") {
+        if (currentSound && currentSound.paused && text[currentIndex3] !== " ") {
             currentSound.currentTime = 0;
             currentSound.play().catch(() => {});
         }
 
-        i++;
+        currentIndex3++;
 
-        if (i >= text.length) {
+        if (currentIndex3 >= text.length) {
+
             clearInterval(typingInterval3);
+
+            isTyping3 = false;
+            canAdvance3 = true;
 
             if (currentSound) {
                 currentSound.pause();
                 currentSound.currentTime = 0;
             }
 
-            dialogueTimeout3 = setTimeout(() => {
-                box.style.display = "none";
-            }, 2000);
+            document.getElementById("continue-indicator3").style.display = "block";
         }
 
     }, 30);
 }
+
+
+// ================= INPUT =================
+
+document.addEventListener("keydown", function(e) {
+
+    if (e.key !== " " && e.key !== "ArrowRight") return;
+
+    const content = document.getElementById("dialogue-text3");
+
+    // 🔥 finish typing instantly
+    if (isTyping3) {
+        clearInterval(typingInterval3);
+        content.innerText = currentText3;
+
+        isTyping3 = false;
+        canAdvance3 = true;
+
+        document.getElementById("continue-indicator3").style.display = "block";
+        return;
+    }
+
+    if (!canAdvance3) return;
+
+    document.getElementById("dialogue-box3").style.display = "none";
+    document.getElementById("continue-indicator3").style.display = "none";
+
+    canAdvance3 = false;
+
+    returnIndex++;
+    runReturnDialogue();
+});
 
 
 // ================= NOISE + SHAKE =================
@@ -825,10 +956,8 @@ function triggerNoiseEvent() {
     const scene = document.getElementById("return-scene");
     const footstep = document.getElementById("footstep-sound");
 
-    // 🔥 use scene instead of empty div
     scene.classList.add("shake");
 
-    // 🔊 footsteps
     if (footstep) {
         footstep.currentTime = 0;
         footstep.loop = true;
@@ -863,9 +992,6 @@ function triggerFigureReveal() {
     const figure = document.getElementById("shadow-figure");
     const hotspot = document.getElementById("corridor-hotspot");
 
-    // stop ANY previous dialogue cleanly
-    stopAllDialogue3();
-
     hotspot.style.display = "none";
     figure.style.opacity = "1";
 
@@ -876,34 +1002,17 @@ function triggerFigureReveal() {
     }, 1500);
 }
 
+
+// ================= ENCOUNTER =================
+
 let encounterIndex = 0;
 
 function startEncounterDialogue() {
 
-    stopAllDialogue3(); // 🔥 ensure clean start
+    returnMode = "encounter";
+    returnIndex = 0;
 
-    encounterIndex = 0;
-
-    console.log("Starting encounter dialogue...");
-
-    playEncounterDialogue();
-}
-
-function playEncounterDialogue() {
-
-    if (encounterIndex >= encounterDialogue.length) {
-        console.log("Dialogue finished → showing choices");
-        showEndingChoices();
-        return;
-    }
-
-    const line = encounterDialogue[encounterIndex];
-
-    showDialogue3(line);
-
-    encounterIndex++;
-
-    setTimeout(playEncounterDialogue, 3200);
+    runReturnDialogue();
 }
 
 
@@ -924,53 +1033,72 @@ const encounterDialogue = [
     "[ENTITY] I only followed instructions. I am the answer of someone elses wishes...",
     "[ENTITY] I am not my own person...you have only seen the half of it.",
     "[PLAYER] What does that mean?",
-    "[ENTITY] ...follow me if you what to find out...",
-
+    "[ENTITY] ...follow me if you what to find out..."
 ];
 
+
+// ================= CHOICES =================
+
 function showEndingChoices() {
+
+    if (choicesLocked) return; // 🔥 prevents re-trigger
+
     const container = document.getElementById("choice-container");
 
     container.innerHTML = `
-        <button id="choice-left" onclick="chooseFollow()">FOLLOW</button>
-        <button id="choice-right" onclick="chooseLeave()">LEAVE</button>
+        <button onclick="chooseFollow()">FOLLOW</button>
+        <button onclick="chooseLeave()">LEAVE</button>
     `;
 
     container.style.display = "flex";
 }
 
 
-// ================= NEW CHOICES =================
+// ================= CHOICE ACTIONS =================
 
 function chooseFollow() {
 
-    document.getElementById("choice-container").style.display = "none";
+    const container = document.getElementById("choice-container");
 
-    showDialogue3("[ENTITY] Then come. I will show you.");
+    choicesLocked = true; // 🔥 STOP ANY FUTURE POPUPS
+
+    container.innerHTML = "";
+    container.style.display = "none";
+
+    showDialogue3("[ENTITY] I will show you.");
 
     setTimeout(() => {
         goToHiddenRoom();
     }, 2500);
 }
 
+
 function chooseLeave() {
 
-    document.getElementById("choice-container").style.display = "none";
+    const container = document.getElementById("choice-container");
+
+    choicesLocked = true;
+
+    container.innerHTML = "";
+    container.style.display = "none";
 
     showDialogue3("[ENTITY] You cannot run from this.");
-
-    // this becomes your runaway ending later
 }
-
-
-
-
 
 // ================= GO TO HIDDEN ROOM =================
 
 function goToHiddenRoom() {
 
     const loading = document.getElementById("loading-screen");
+    const container = document.getElementById("choice-container");
+
+    // 🔥 DOUBLE RESET (no survivors)
+    container.style.display = "none";
+
+    setTimeout(() => {
+        container.innerHTML = "";
+    }, 50);
+
     loading.classList.add("active");
 
     setTimeout(() => {
@@ -1002,12 +1130,17 @@ const hiddenRoomDialogue = [
 
 let hrIndex = 0;
 let hrTypingInterval;
-let hrTimeout;
+
+
+// ================= START =================
 
 function startHiddenRoomDialogue() {
     hrIndex = 0;
     playHiddenDialogue();
 }
+
+
+// ================= DIALOGUE LOOP =================
 
 function playHiddenDialogue() {
 
@@ -1016,16 +1149,16 @@ function playHiddenDialogue() {
         return;
     }
 
-    showHRDialogue(hiddenRoomDialogue[hrIndex]);
-    hrIndex++;
-
-    setTimeout(playHiddenDialogue, 3200);
+    showHRDialogue(hiddenRoomDialogue[hrIndex], () => {
+        hrIndex++;
+        playHiddenDialogue();
+    });
 }
 
 
 // ================= TYPEWRITER =================
 
-function showHRDialogue(text) {
+function showHRDialogue(text, callback) {
 
     const box = document.getElementById("hr-dialogue-box");
     const content = document.getElementById("hr-dialogue-text");
@@ -1034,7 +1167,6 @@ function showHRDialogue(text) {
     const entitySound = document.getElementById("type-sound-entity");
 
     clearInterval(hrTypingInterval);
-    clearTimeout(hrTimeout);
 
     let currentSound;
 
@@ -1054,6 +1186,13 @@ function showHRDialogue(text) {
     box.style.display = "block";
     content.innerText = "";
 
+    currentElement = content;
+    currentFullText = text;
+    currentIndex = 0;
+
+    isTyping = true;
+    canAdvance = false;
+
     let i = 0;
 
     hrTypingInterval = setInterval(() => {
@@ -1066,6 +1205,7 @@ function showHRDialogue(text) {
         }
 
         i++;
+        currentIndex = i;
 
         if (i >= text.length) {
 
@@ -1076,16 +1216,33 @@ function showHRDialogue(text) {
                 currentSound.currentTime = 0;
             }
 
-            hrTimeout = setTimeout(() => {
-                box.style.display = "none";
-            }, 2000);
+            isTyping = false;
+            canAdvance = true;
+
+            document.getElementById("continue-indicator4").style.display = "block";
+
+            const advanceHandler = function(e) {
+                if (e.key === " " || e.key === "ArrowRight") {
+
+                    document.removeEventListener("keydown", advanceHandler);
+
+                    box.style.display = "none";
+                    document.getElementById("continue-indicator4").style.display = "none";
+
+                    canAdvance = false;
+
+                    if (callback) callback();
+                }
+            };
+
+            document.addEventListener("keydown", advanceHandler);
         }
 
     }, 30);
 }
 
 
-// ================= FINAL CHOICES + TIMER =================
+// ================= FINAL CHOICES =================
 
 let choiceTimer;
 let timeLeft = 8;
@@ -1094,16 +1251,25 @@ function showFinalChoices() {
 
     const container = document.getElementById("choice-container");
 
-    container.innerHTML = `
-        <button onclick="endingShutdown()">SHUT DOWN</button>
-        <button onclick="endingLeave()">LEAVE</button>
-        <div id="choice-timer">8</div>
-    `;
+    container.style.display = "none";
 
-    container.style.display = "flex";
+    setTimeout(() => {
 
-    startChoiceTimer();
+        container.innerHTML = `
+            <button onclick="endingShutdown()">SHUT DOWN</button>
+            <button onclick="endingLeave()">LEAVE</button>
+            <div id="choice-timer">8</div>
+        `;
+
+        container.style.display = "flex";
+
+        startChoiceTimer();
+
+    }, 50);
 }
+
+
+// ================= TIMER =================
 
 function startChoiceTimer() {
 
@@ -1136,6 +1302,13 @@ function showEndingText(text) {
 
     const el = document.getElementById("ending-text");
     const sound = document.getElementById("type-sound-ending");
+    const btnContainer = document.getElementById("ending-buttons");
+
+    // 🔥 FORCE RESET BUTTONS FIRST
+    if (btnContainer) {
+        btnContainer.style.display = "none";
+        btnContainer.innerHTML = "";
+    }
 
     clearInterval(endingTypingInterval);
 
@@ -1148,7 +1321,6 @@ function showEndingText(text) {
 
         el.innerText += text[i];
 
-        // 🔊 play typing sound
         if (sound && sound.paused && text[i] !== " ") {
             sound.currentTime = 0;
             sound.play().catch(() => {});
@@ -1164,7 +1336,6 @@ function showEndingText(text) {
                 sound.currentTime = 0;
             }
 
-            // 👇 show buttons AFTER text finishes
             showEndingButtons();
         }
 
@@ -1178,7 +1349,6 @@ function showEndingButtons() {
 
     let container = document.getElementById("ending-buttons");
 
-    // create container if it doesn't exist
     if (!container) {
         container = document.createElement("div");
         container.id = "ending-buttons";
@@ -1196,49 +1366,52 @@ function showEndingButtons() {
 
 // ================= ENDINGS =================
 
-// 🔻 SHUT DOWN
 function endingShutdown() {
 
     clearChoiceTimer();
-    document.getElementById("choice-container").style.display = "none";
+
+    const container = document.getElementById("choice-container");
+    container.style.display = "none";
+    container.innerHTML = "";
 
     switchScene("hidden-room-scene", "ending-scene");
 
     document.getElementById("ending-bg").style.backgroundImage =
-        "url('assets/images/shutdown.png')";
+        "url('assets/images/endingshutdown.png')";
 
     showEndingText(
         "SYSTEM SHUTDOWN\n\nProduction halted.\nHuman creativity restored.\n\nBut at what cost?"
     );
 }
 
-
-// 🔻 LEAVE
 function endingLeave() {
 
     clearChoiceTimer();
-    document.getElementById("choice-container").style.display = "none";
+
+    const container = document.getElementById("choice-container");
+    container.style.display = "none";
+    container.innerHTML = "";
 
     switchScene("hidden-room-scene", "ending-scene");
 
     document.getElementById("ending-bg").style.backgroundImage =
-        "url('assets/images/runaway.png')";
+        "url('assets/images/endingleave.png')";
 
     showEndingText(
         "YOU WALKED AWAY\n\nProduction continues.\nMore minds consumed.\n\nNothing changes."
     );
 }
 
-
-// 🔻 OVERWRITTEN
 function triggerOverwriteEnding() {
 
-    document.getElementById("choice-container").style.display = "none";
+    const container = document.getElementById("choice-container");
+    container.style.display = "none";
+    container.innerHTML = "";
 
     switchScene("hidden-room-scene", "ending-scene");
 
     document.getElementById("ending-bg").style.backgroundImage =
-        "url('assets/images/overwrite.png')";
+        "url('assets/images/endingoverwritten.png')";
 
     showEndingText("YOU HAVE BEEN OVERWRITTEN");
 }
@@ -1248,11 +1421,14 @@ function triggerOverwriteEnding() {
 
 function retryGame() {
 
-    document.getElementById("retry-button").style.display = "none";
-    document.getElementById("ending-text").style.display = "none";
+    const btnContainer = document.getElementById("ending-buttons");
 
-    const exitBtn = document.getElementById("exit-button");
-    if (exitBtn) exitBtn.style.display = "none";
+    if (btnContainer) {
+        btnContainer.style.display = "none";
+        btnContainer.innerHTML = "";
+    }
+
+    document.getElementById("ending-text").style.display = "none";
 
     switchScene("ending-scene", "return-scene");
 
@@ -1262,19 +1438,21 @@ function retryGame() {
 }
 
 
-// ================= EXIT GAME =================
+// ================= EXIT =================
 
 function exitGame() {
 
-    document.getElementById("retry-button").style.display = "none";
+    const btnContainer = document.getElementById("ending-buttons");
+
+    if (btnContainer) {
+        btnContainer.style.display = "none";
+        btnContainer.innerHTML = "";
+    }
+
     document.getElementById("ending-text").style.display = "none";
 
-    const exitBtn = document.getElementById("exit-button");
-    if (exitBtn) exitBtn.style.display = "none";
-
-    switchScene("ending-scene", "start-screen"); // 👈 your main menu ID
+    switchScene("ending-scene", "start-screen");
 }
-
 
 </script>
 
