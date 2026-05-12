@@ -78,6 +78,71 @@ body {
     25%, 75% {opacity: 0;}
 }
 
+/* ================= CONTROLS POPUP ================= */
+
+#controls-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0,0,0,0.7);
+
+    display: none;
+
+    justify-content: center;
+    align-items: center;
+
+    z-index: 99999;
+}
+
+.controls-inner {
+    width: 500px;
+
+    background-color: #1C1C1C;
+    border: 3px solid #C464AF;
+
+    padding: 30px;
+    text-align: center;
+}
+
+.controls-inner h2 {
+    margin-bottom: 25px;
+    color: #FCFBD8;
+    font-size: 18px;
+}
+
+.controls-inner p {
+    font-family: 'Pixelify Sans', sans-serif;
+    font-size: 18px;
+    margin: 15px 0;
+    line-height: 1.6;
+}
+
+.controls-inner button {
+    margin-top: 25px;
+
+    font-family: 'Press Start 2P', monospace;
+
+    padding: 12px 20px;
+
+    background-color: #1C1C1C;
+    border: 3px solid #5C4A3D;
+    color: #FCFBD8;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.controls-inner button:hover {
+    transform: scale(1.05);
+    background-color: #9A2C2C;
+    border-color: #9A2C2C;
+}
+
 
 #loading-screen {
     position: fixed;
@@ -797,7 +862,7 @@ body {
     position: absolute;
     width: 200px;
     height: 250px;
-    top: 10%;
+    top: 7%;
     left: 44%;
 
     background-image: url("../assets/images/figure.png");
@@ -866,7 +931,7 @@ body {
     z-index: 20;
 }
 
-#choice-container button {
+.choice-btn {
     font-family: 'Press Start 2P', monospace;
     padding: 20px;
     width: 200px;
@@ -876,14 +941,21 @@ body {
     color: #FCFBD8;
 
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-#choice-left:hover {
+.choice-btn:hover {
+    transform: scale(1.05);
+}
+
+.choice-btn:first-of-type:hover {
     background-color: #3B4B3B;
+    border-color: #3B4B3B;
 }
 
-#choice-right:hover {
+.choice-btn:nth-of-type(2):hover {
     background-color: #9A2C2C;
+    border-color: #9A2C2C;
 }
 
 /* TIMER */
@@ -1028,7 +1100,8 @@ body {
     z-index: 9999;
 }
 
-#ending-buttons button {
+
+.ending-btn {
     font-family: 'Press Start 2P', monospace;
     padding: 15px;
     width: 200px;
@@ -1038,18 +1111,22 @@ body {
     color: #FCFBD8;
 
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-/* RETRY (calm) */
-#retry-button:hover {
+#ending-buttons .ending-btn:hover {
+    transform: scale(1.05);
+}
+
+#ending-buttons .ending-btn:first-child:hover {
     background-color: #3B4B3B;
+    border-color: #3B4B3B;
 }
 
-/* EXIT (danger) */
-#exit-button:hover {
+#ending-buttons .ending-btn:last-child:hover {
     background-color: #9A2C2C;
+    border-color: #9A2C2C;
 }
-
 
 
 

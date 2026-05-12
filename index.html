@@ -23,9 +23,29 @@
             <img src="assets/images/logo.png" alt="Overwritten Logo">
         </div>
 
-        <button class="btn" onclick="startGame()">START</button>
-        <button class="btn" onclick="exitGame()">EXIT</button>
+<button class="btn" onclick="startGame()">START</button>
+<button class="btn" onclick="showControls()">CONTROLS</button>
+<button class="btn" onclick="exitGame()">EXIT</button>
+
     </div>
+
+    <div id="controls-popup">
+
+    <div class="controls-inner">
+        <h2>CONTROLS</h2>
+
+        <p>SPACE BAR / RIGHT ARROW KEY → Continue dialogue</p>
+        <p>MOUSE CLICK → Interact with objects with red box</p>
+        <p>WARNING: Some elements may look a bit off in terms of placement as devices
+            are different sizes so you may have to hover around a bit to find the red boxes.
+            Appologies for the inconvenience.
+            
+        </p>
+
+        <button onclick="closeControls()">CLOSE</button>
+    </div>
+
+</div>
 
 </div>
 
@@ -213,21 +233,9 @@
 
     <button id="retry-button" onclick="retryGame()">RETRY</button>
 
+
+
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 <!-- ================= LOADING SCREEN ================= -->
@@ -243,7 +251,7 @@
 <audio id="type-sound-entity" src="assets/audio/antagtalkingsound.mp3"></audio>
 <audio id="footstep-sound" src="assets/audio/footsteps.mp3"></audio>
 <audio id="type-sound-ending" src="assets/audio/genericsound.mp3"></audio>
-
+<audio id="recovery-sound" src="assets/audio/recovery.mp3" preload="auto"></audio>
 
 
 
@@ -289,6 +297,15 @@ function exitGame() {
     setTimeout(() => {
         window.close();
     }, 1500);
+}
+
+//CONTROL PANNEL
+function showControls() {
+    document.getElementById("controls-popup").style.display = "flex";
+}
+
+function closeControls() {
+    document.getElementById("controls-popup").style.display = "none";
 }
 
 // INTERACTION DIALOGUE 1
@@ -449,13 +466,20 @@ function openFile(type) {
 // ================= RECOVERY SYSTEM =================
 
 function recoverFootage() {
+
     const popupText = document.getElementById("popup-text");
     const popupButtons = document.getElementById("popup-buttons");
     const progressContainer = document.getElementById("progress-container");
     const progressBar = document.getElementById("progress-bar");
 
-    popupButtons.innerHTML = ""; // remove buttons
+    const recoverySound = document.getElementById("recovery-sound");
+
+    popupButtons.innerHTML = "";
     progressContainer.style.display = "block";
+
+    recoverySound.currentTime = 0;
+recoverySound.loop = true;
+recoverySound.play().catch(() => {});
 
     let progress = 0;
 
@@ -479,8 +503,12 @@ function recoverFootage() {
         if (progress >= 100) {
             clearInterval(interval);
 
+            recoverySound.pause();
+            recoverySound.currentTime = 0;
+
             progressBar.style.width = "100%";
             popupText.innerText = "File recovered.";
+            
 
             popupButtons.innerHTML = `
                 <button onclick="openRecoveredFile()">OPEN FILE</button>
@@ -1045,10 +1073,10 @@ function showEndingChoices() {
 
     const container = document.getElementById("choice-container");
 
-    container.innerHTML = `
-        <button onclick="chooseFollow()">FOLLOW</button>
-        <button onclick="chooseLeave()">LEAVE</button>
-    `;
+container.innerHTML = `
+    <button class="choice-btn" onclick="chooseFollow()">FOLLOW</button>
+    <button class="choice-btn" onclick="chooseLeave()">LEAVE</button>
+`;
 
     container.style.display = "flex";
 }
@@ -1082,7 +1110,11 @@ function chooseLeave() {
     container.innerHTML = "";
     container.style.display = "none";
 
-    showDialogue3("[ENTITY] You cannot run from this.");
+    showDialogue3("[ENTITY] DONT-.");
+
+    setTimeout(() => {
+        endingLeave();
+    }, 2500);
 }
 
 // ================= GO TO HIDDEN ROOM =================
@@ -1255,11 +1287,11 @@ function showFinalChoices() {
 
     setTimeout(() => {
 
-        container.innerHTML = `
-            <button onclick="endingShutdown()">SHUT DOWN</button>
-            <button onclick="endingLeave()">LEAVE</button>
-            <div id="choice-timer">8</div>
-        `;
+container.innerHTML = `
+    <button class="choice-btn" onclick="endingShutdown()">SHUT DOWN</button>
+    <button class="choice-btn" onclick="endingLeave()">LEAVE</button>
+    <div id="choice-timer">8</div>
+`;
 
         container.style.display = "flex";
 
@@ -1355,10 +1387,10 @@ function showEndingButtons() {
         document.getElementById("ending-scene").appendChild(container);
     }
 
-    container.innerHTML = `
-        <button id="retry-button" onclick="retryGame()">RETRY</button>
-        <button id="exit-button" onclick="exitGame()">EXIT</button>
-    `;
+container.innerHTML = `
+    <button class="ending-btn" onclick="retryGame()">RETRY</button>
+    <button class="ending-btn" onclick="exitGame()">EXIT</button>
+`;
 
     container.style.display = "flex";
 }
@@ -1420,6 +1452,8 @@ function triggerOverwriteEnding() {
 // ================= RETRY =================
 
 function retryGame() {
+
+    choicesLocked = false;
 
     const btnContainer = document.getElementById("ending-buttons");
 
