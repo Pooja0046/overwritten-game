@@ -252,6 +252,7 @@
 <audio id="footstep-sound" src="assets/audio/footsteps.mp3"></audio>
 <audio id="type-sound-ending" src="assets/audio/genericsound.mp3"></audio>
 <audio id="recovery-sound" src="assets/audio/recovery.mp3" preload="auto"></audio>
+<audio id="signal-lost-sound" src="assets/audio/signallost.mp3"></audio>
 
 
 
@@ -591,14 +592,14 @@ const footageDialogue = [
 
 const corruptedDialogue = [
     "[MAN] ...",
-    "[MAN] Why are you still here?",
+    "[MAN] YoU neEd tO go.",
     "[CAMERA] What the hell is wrong with your face?",
-    "[MAN] I told you.",
-    "[MAN] It's too late.",
-    "[MAN] It already sees you.",
+    "[MAN] I tOLd yOU.",
+    "[MAN] iT'S tOo LAte.",
+    "[MAN] It aLReaDy sEes YoU.",
     "[CAMERA] Who?!",
     "[MAN] ...",
-    "[MAN] Look behind you."
+    "[MAN] LOok beHinD yOu."
 ];
 
 
@@ -651,6 +652,14 @@ function switchToCorruptedFootage() {
     stopAllDialogue();
 
     const bg = document.getElementById("footage-bg");
+
+    // 👇 ADD THIS
+    const hotspot = document.querySelector(".character");
+
+    if (hotspot) {
+        hotspot.style.display = "none";
+        hotspot.style.pointerEvents = "none";
+    }
 
     if (!bg) {
         console.error("footage-bg not found ❌");
@@ -781,8 +790,12 @@ document.addEventListener("keydown", function(e) {
 // ================= ENDING =================
 
 function triggerEnding() {
+
     const camera = document.querySelector(".camera");
     const flash = document.getElementById("glitch-flash");
+
+    // 👇 NEW
+    const signalLost = document.getElementById("signal-lost-sound");
 
     camera.style.animation = "none";
     camera.offsetHeight;
@@ -791,6 +804,13 @@ function triggerEnding() {
 
     setTimeout(() => {
         camera.classList.add("fall");
+
+        // 👇 PLAY SIGNAL LOST SOUND
+        if (signalLost) {
+            signalLost.currentTime = 0;
+            signalLost.play().catch(() => {});
+        }
+
     }, 100);
 
     setTimeout(() => {
@@ -801,12 +821,21 @@ function triggerEnding() {
 
 // EXIT FROM FOOTAGE
 function exitFootage() {
+
+    // 👇 STOP SIGNAL LOST AUDIO
+    const signalLost = document.getElementById("signal-lost-sound");
+
+    if (signalLost) {
+        signalLost.pause();
+        signalLost.currentTime = 0;
+    }
+
     const loading = document.getElementById("loading-screen");
     loading.classList.add("active");
 
     setTimeout(() => {
         loading.classList.remove("active");
-        startReturnScene(); // 🔥 cleaner + reusable
+        startReturnScene();
     }, 1500);
 }
 
@@ -1110,7 +1139,7 @@ function chooseLeave() {
     container.innerHTML = "";
     container.style.display = "none";
 
-    showDialogue3("[ENTITY] DONT-.");
+    showDialogue3("[ENTITY] DON'T-");
 
     setTimeout(() => {
         endingLeave();

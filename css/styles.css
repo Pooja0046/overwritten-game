@@ -565,14 +565,7 @@ body {
     z-index: 1; /* BELOW HOTSPOTS */
 }
 
-/* DARK MOOD OVERLAY */
-#footage-bg::after {
-    content: "";
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.25);
-}
+
 
 /* CAMERA SCANLINES */
 .camera::after {
@@ -669,7 +662,7 @@ body {
 
 #footage-bg.corrupted {
     animation: glitchFlicker 0.2s infinite;
-    filter: contrast(1.4) brightness(0.9);
+    filter: contrast(1.2);
 }
 
 @keyframes glitchFlicker {
