@@ -472,7 +472,7 @@ body {
     display: none;
     text-align: center;
 
-    z-index: 9999; /* 👈 THIS FIXES IT */
+    z-index: 9999; 
 }
 
 #popup-text {
